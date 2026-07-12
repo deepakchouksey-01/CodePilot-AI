@@ -1,3 +1,17 @@
 export default function Footer() {
-  return <div>Footer</div>;
+  return (
+    <footer className="border-t bg-white py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
+
+        <h2 className="text-xl font-bold">
+          CodePilot AI
+        </h2>
+
+        <p className="text-gray-500">
+          © 2026 CodePilot AI. All rights reserved.
+        </p>
+
+      </div>
+    </footer>
+  );
 }
