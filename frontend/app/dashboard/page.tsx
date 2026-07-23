@@ -3,9 +3,18 @@ import { redirect } from "next/navigation";
 
 import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
-import StatsCard from "@/components/dashboard/StatsCard";
 import RepoCard from "@/components/dashboard/RepoCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import RepositorySearch from "@/components/search/RepositorySearch";
+import DashboardCard from "@/components/ui/DashboardCard";
+import { prisma } from "@/lib/prisma";
+
+import {
+  FaGithub,
+  FaRobot,
+  FaBug,
+  FaShieldAlt,
+} from "react-icons/fa";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -27,9 +36,19 @@ export default async function DashboardPage() {
 
   const repos = response.ok ? await response.json() : [];
 
-  const reviews = 0;
-  const bugs = 0;
-  const security = 0;
+  const totalReviews = await prisma.review.count();
+
+  const reviewData = await prisma.review.findMany();
+
+  const reviews = totalReviews;
+
+  const bugs = reviewData.filter(
+    (r) => Number(r.overallScore?.replace("/100", "") || 0) < 80
+  ).length;
+
+  const security = reviewData.filter(
+    (r) => Number(r.securityScore?.replace("/100", "") || 0) < 80
+  ).length;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -37,12 +56,12 @@ export default async function DashboardPage() {
 
       <div className="flex-1">
         <Navbar
-         user={{
-        name: session.user?.name ?? null,
-        email: session.user?.email ?? null,
-        image: session.user?.image ?? null,
-        }}
-      />
+          user={{
+            name: session.user?.name ?? null,
+            email: session.user?.email ?? null,
+            image: session.user?.image ?? null,
+          }}
+        />
 
         <main className="p-8">
           <div className="mb-8">
@@ -55,12 +74,35 @@ export default async function DashboardPage() {
             </p>
           </div>
 
+          {/* Dashboard Cards */}
+
           <div className="grid gap-6 md:grid-cols-4">
-            <StatsCard title="Repositories" value={repos.length} />
-            <StatsCard title="AI Reviews" value={reviews} />
-            <StatsCard title="Bugs Found" value={bugs} />
-            <StatsCard title="Security Issues" value={security} />
+            <DashboardCard
+              title="Repositories"
+              value={repos.length}
+              icon={<FaGithub />}
+            />
+
+            <DashboardCard
+              title="AI Reviews"
+              value={reviews}
+              icon={<FaRobot />}
+            />
+
+            <DashboardCard
+              title="Bugs Found"
+              value={bugs}
+              icon={<FaBug />}
+            />
+
+            <DashboardCard
+              title="Security Issues"
+              value={security}
+              icon={<FaShieldAlt />}
+            />
           </div>
+
+          {/* Repository Section */}
 
           <div className="mt-10 grid gap-8 lg:grid-cols-3">
             <div className="rounded-xl bg-white p-6 shadow lg:col-span-2">
@@ -74,18 +116,19 @@ export default async function DashboardPage() {
                 </span>
               </div>
 
-              <div className="space-y-4">
+              <RepositorySearch repos={repos} />
+
+              <div className="mt-6 space-y-4">
                 {repos.length === 0 ? (
                   <p className="text-gray-500">
                     No repositories found.
                   </p>
                 ) : (
                   repos.slice(0, 10).map((repo: any) => (
-                  <RepoCard
-                    key={repo.id}
-                    repo={repo}
-                    
-                     />
+                    <RepoCard
+                      key={repo.id}
+                      repo={repo}
+                    />
                   ))
                 )}
               </div>

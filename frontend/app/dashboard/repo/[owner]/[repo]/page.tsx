@@ -97,7 +97,11 @@ export default async function RepoPage({ params }: Props) {
             </div>
 
             <div className="mt-8">
-              <AnalyzeButton code={repositoryCode} />
+              <AnalyzeButton 
+              code={repositoryCode}
+              owner={owner}
+              repository={repo}
+               />
             </div>
           </div>
         )}

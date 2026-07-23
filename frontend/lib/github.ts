@@ -1,3 +1,12 @@
+const CODE_EXTENSIONS = [
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".json",
+  ".md",
+];
+
 export async function getRepoContents(
   owner: string,
   repo: string,
@@ -15,17 +24,8 @@ export async function getRepoContents(
     }
   );
 
-  console.log(
-    "GitHub Contents:",
-    owner,
-    repo,
-    path || "/",
-    response.status
-  );
-
   if (!response.ok) {
-    console.log("❌ Failed Path:", path || "/");
-    console.log(await response.text());
+    console.log("Failed:", path);
     return [];
   }
 
@@ -49,10 +49,7 @@ export async function getFileContent(
     }
   );
 
-  console.log("Reading File:", path, response.status);
-
   if (!response.ok) {
-    console.log("❌ Failed File:", path);
     return "";
   }
 
@@ -65,40 +62,6 @@ export async function getFileContent(
   return Buffer.from(data.content, "base64").toString("utf8");
 }
 
-const CODE_EXTENSIONS = [
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".json",
-  ".py",
-  ".java",
-  ".cs",
-  ".go",
-  ".cpp",
-  ".c",
-  ".h",
-  ".php",
-  ".rb",
-  ".rs",
-  ".swift",
-  ".kt",
-  ".sql",
-  ".md",
-];
-
-const IGNORE_FOLDERS = [
-  ".git",
-  ".github",
-  ".next",
-  "node_modules",
-  "dist",
-  "build",
-  "coverage",
-  "public",
-  "test-next",
-];
-
 export async function getRepositoryCode(
   owner: string,
   repo: string,
@@ -106,61 +69,80 @@ export async function getRepositoryCode(
 ) {
   let finalCode = "";
 
+  const SKIP_FOLDERS = [
+    ".git",
+    ".next",
+    "node_modules",
+    "frontend/public",
+    "frontend/test-next",
+    "dist",
+    "build",
+  ];
+
+  const SKIP_FILES = [
+    "package-lock.json",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ];
+
   async function traverse(path = "") {
-    const items = await getRepoContents(owner, repo, path, token);
+    const items = await getRepoContents(
+      owner,
+      repo,
+      path,
+      token
+    );
 
     if (!Array.isArray(items)) return;
 
     for (const item of items) {
       if (item.type === "dir") {
         if (
-          IGNORE_FOLDERS.includes(item.name) ||
-          item.name.startsWith(".")
+          SKIP_FOLDERS.some((folder) =>
+            item.path.startsWith(folder)
+          )
         ) {
-          console.log("⏭ Skipping Folder:", item.path);
+          console.log("Skipping:", item.path);
           continue;
         }
 
-        console.log("📁 Enter Folder:", item.path);
-
         await traverse(item.path);
+        continue;
       }
 
-      if (item.type === "file") {
-        const valid = CODE_EXTENSIONS.some((ext) =>
-          item.name.endsWith(ext)
-        );
+      if (SKIP_FILES.includes(item.name)) {
+        continue;
+      }
 
-        if (!valid) continue;
+      const valid = CODE_EXTENSIONS.some((ext) =>
+        item.name.endsWith(ext)
+      );
 
-        const code = await getFileContent(
-          owner,
-          repo,
-          item.path,
-          token
-        );
+      if (!valid) continue;
 
-        finalCode += `
+      const code = await getFileContent(
+        owner,
+        repo,
+        item.path,
+        token
+      );
 
-==========================
+      finalCode += `
+
+=========================
 FILE: ${item.path}
-==========================
+=========================
 
 ${code}
 
 `;
-      }
     }
   }
 
   await traverse();
 
-  console.log("================================");
-  console.log("Repository Code Length:", finalCode.length);
-  console.log(
-    finalCode.substring(0, 500)
-  );
-  console.log("================================");
+  console.log("Repository Length:", finalCode.length);
 
-  return finalCode.slice(0, 80000);
+  return finalCode.substring(0, 100000);
 }

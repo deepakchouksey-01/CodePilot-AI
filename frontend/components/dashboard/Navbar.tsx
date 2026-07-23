@@ -1,5 +1,7 @@
 "use client";
 
+
+
 type NavbarProps = {
   user: {
     name?: string | null;
@@ -22,6 +24,9 @@ export default function Navbar({ user }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-4">
+
+        
+
         {user.image ? (
           <img
             src={user.image}
